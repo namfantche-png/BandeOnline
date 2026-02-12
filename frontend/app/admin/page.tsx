@@ -7,8 +7,6 @@ import api from '@/lib/api';
 import { Loading } from '@/components/Loading';
 import { Toast } from '@/components/Toast';
 import { toastManager } from '@/lib/toast';
-import { AdImage } from '@/components/AdImage';
-import { BackButton } from '@/components/BackButton';
 
 // Componente de Tab de Usuários
 function UsersTab() {
@@ -30,11 +28,8 @@ function UsersTab() {
 
   useEffect(() => {
     fetchUsers();
-  }, [page, search, statusFilter]);
-
-  useEffect(() => {
     fetchPlans();
-  }, []);
+  }, [page, search, statusFilter]);
 
   const fetchUsers = async () => {
     try {
@@ -67,23 +62,18 @@ function UsersTab() {
 
   const fetchPlans = async () => {
     try {
-      const response = await api.get('/admin/plans');
-      const data = response.data;
-      const plansList = Array.isArray(data) ? data : (data?.data ?? []);
-      setPlans(plansList);
+      const response = await api.get('/plans');
+      setPlans(response.data?.data || []);
     } catch (err: any) {
       console.error('Erro ao carregar planos:', err);
-      setPlans([]);
     }
   };
 
-  const handleOpenPlanModal = async (user: any) => {
+  const handleOpenPlanModal = (user: any) => {
     setSelectedUser(user);
-    const planId = user.currentPlan?.id ?? user.subscriptions?.[0]?.plan?.id ?? '';
-    setSelectedPlan(planId);
+    setSelectedPlan(user.currentPlan?.id || '');
     setPlanReason('');
     setShowPlanModal(true);
-    if (plans.length === 0) await fetchPlans();
   };
 
   const handleChangePlan = async () => {
@@ -284,7 +274,7 @@ function UsersTab() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h3 className="text-lg font-semibold mb-4">
-              Mudar Plano - {selectedUser.firstName || selectedUser.profile?.firstName} {selectedUser.lastName || selectedUser.profile?.lastName}
+              Mudar Plano - {selectedUser.profile?.firstName} {selectedUser.profile?.lastName}
             </h3>
 
             <div className="space-y-4">
@@ -434,7 +424,7 @@ function AdsTab() {
           ads.map((ad) => (
             <div key={ad.id} className="border rounded-lg p-4 hover:shadow-lg transition">
               {ad.images && ad.images.length > 0 && (
-                <AdImage
+                <img
                   src={ad.images[0]}
                   alt={ad.title}
                   className="w-full h-48 object-cover rounded mb-3"
@@ -806,7 +796,6 @@ export default function AdminDashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <BackButton />
         {/* Tabs */}
         <div className="flex border-b border-gray-200 mb-8">
           <button
