@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <!-- Fundo azul -->
+  <rect width="180" height="180" fill="#3b82f6" rx="45"/>
+  <!-- Círculo branco central -->
+  <circle cx="90" cy="90" r="50" fill="white"/>
+  <!-- Texto "BM" -->
+  <text x="90" y="105" font-size="60" font-weight="bold" text-anchor="middle" fill="#3b82f6" font-family="Arial, sans-serif">BM</text>
+</svg>

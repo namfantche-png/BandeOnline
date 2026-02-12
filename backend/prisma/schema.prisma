@@ -1,0 +1,411 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider   = "prisma-client-js"
+  output     = "../node_modules/.prisma/client"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// USERS & AUTHENTICATION
+// ============================================
+
+model User {
+  id                    String    @id @default(cuid())
+  email                 String    @unique
+  password              String
+  firstName             String
+  lastName              String
+  phone                 String?
+  avatar                String?   // URL da foto de perfil
+  role                  String    @default("user") // user, admin
+  isActive              Boolean   @default(true)
+  isBlocked             Boolean   @default(false)
+  blockedReason         String?
+  blockedUntil          DateTime? // Bloqueio temporário
+  isVerified            Boolean   @default(false) // Conta verificada (badge)
+  refreshToken          String?   // Para refresh token JWT
+  resetPasswordToken    String?
+  resetPasswordExpires  DateTime?
+  lastLoginAt           DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  profile               Profile?
+  ads                   Ad[]
+  subscriptions         Subscription[]
+  sentMessages          Message[] @relation("sender")
+  receivedMessages      Message[] @relation("receiver")
+  reviewsGiven          Review[]  @relation("reviewer")
+  reviewsReceived       Review[]  @relation("reviewedUser")
+  payments              Payment[]
+  adminLogs             AdminLog[]
+  reports               Report[]
+  invoices              Invoice[]
+  notifications         Notification[]
+  blockedUsers          UserBlock[]     @relation("UserBlocks")
+  blockedBy             UserBlock[]     @relation("BlockedBy")
+
+  @@index([email])
+  @@index([isActive])
+  @@index([role])
+}
+
+model Profile {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  bio           String?   @db.Text
+  location      String?
+  city          String?
+  country       String?
+  phone         String?
+  website       String?
+  socialLinks   Json?     // { instagram, facebook, whatsapp }
+  rating        Float     @default(0)
+  reviewCount   Int       @default(0)
+  totalAds      Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ============================================
+// PLANS & SUBSCRIPTIONS
+// ============================================
+
+model Plan {
+  id            String    @id @default(cuid())
+  name          String    @unique
+  description   String?   @db.Text
+  price         Float     @default(0)
+  currency      String    @default("XOF")
+  maxAds        Int       @default(3)
+  maxHighlights Int       @default(0)
+  maxImages     Int       @default(3) // Máximo de imagens por anúncio
+  hasStore      Boolean   @default(false)
+  adDuration    Int       @default(30) // Dias de duração do anúncio (FREE = 30)
+  features      String[]  @default([])
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  subscriptions Subscription[]
+
+  @@index([isActive])
+}
+
+model Subscription {
+  id            String    @id @default(cuid())
+  userId        String
+  planId        String
+  status        String    @default("active") // active, cancelled, expired
+  startDate     DateTime  @default(now())
+  endDate       DateTime?
+  renewalDate   DateTime?
+  autoRenew     Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan          Plan      @relation(fields: [planId], references: [id])
+
+  @@unique([userId, planId])
+  @@index([userId])
+  @@index([status])
+}
+
+// ============================================
+// CATEGORIES & SUBCATEGORIES
+// ============================================
+
+model Category {
+  id            String    @id @default(cuid())
+  name          String    @unique
+  slug          String    @unique
+  description   String?   @db.Text
+  icon          String?   // URL ou nome do ícone
+  parentId      String?   // Para subcategorias
+  order         Int       @default(0) // Ordem de exibição
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  parent        Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  subcategories Category[] @relation("CategoryHierarchy")
+  ads           Ad[]
+
+  @@index([parentId])
+  @@index([isActive])
+  @@index([order])
+}
+
+// ============================================
+// ADS (ANÚNCIOS)
+// ============================================
+
+model Ad {
+  id              String    @id @default(cuid())
+  userId          String
+  categoryId      String
+  title           String
+  description     String    @db.Text
+  price           Float
+  currency        String    @default("XOF")
+  location        String
+  city            String
+  country         String
+  images          String[]  @default([]) // Array de URLs
+  status          String    @default("pending") // pending, active, sold, paused, removed, expired
+  isHighlighted   Boolean   @default(false)
+  highlightedAt   DateTime?
+  views           Int       @default(0)
+  condition       String    @default("used") // new, used, refurbished
+  contactPhone    String?   // Telefone de contato específico
+  contactWhatsapp String?   // WhatsApp de contato
+  moderationReason String?  // Razão de rejeição/remoção
+  moderatedAt     DateTime?
+  moderatedBy     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  expiresAt       DateTime? // Data de expiração automática
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      Category  @relation(fields: [categoryId], references: [id])
+  messages      Message[]
+  reviews       Review[]
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([expiresAt])
+  @@index([isHighlighted])
+}
+
+// ============================================
+// CHAT & MESSAGING
+// ============================================
+
+model Message {
+  id            String    @id @default(cuid())
+  senderId      String
+  receiverId    String
+  adId          String?   // Referência ao anúncio (opcional)
+  content       String    @db.Text
+  isRead        Boolean   @default(false)
+  imageUrl      String?   // URL da imagem compartilhada
+  locationLat   Float?    // Latitude da localização compartilhada
+  locationLng   Float?    // Longitude da localização compartilhada
+  locationAddress String? @db.Text // Endereço da localização
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  sender        User      @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver      User      @relation("receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  ad            Ad?       @relation(fields: [adId], references: [id], onDelete: SetNull)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([adId])
+  @@index([createdAt])
+}
+
+// ============================================
+// REVIEWS & RATINGS
+// ============================================
+
+model Review {
+  id              String    @id @default(cuid())
+  reviewerId      String
+  reviewedUserId  String
+  adId            String?
+  rating          Int       // 1-5
+  comment         String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  reviewer        User      @relation("reviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewedUser    User      @relation("reviewedUser", fields: [reviewedUserId], references: [id], onDelete: Cascade)
+  ad              Ad?       @relation(fields: [adId], references: [id], onDelete: SetNull)
+
+  @@unique([reviewerId, reviewedUserId, adId])
+  @@index([reviewedUserId])
+  @@index([adId])
+}
+
+// ============================================
+// PAYMENTS & INVOICES
+// ============================================
+
+model Payment {
+  id              String    @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  amount          Float
+  currency        String    @default("XOF")
+  status          String    @default("pending") // pending, completed, failed, refunded, expired
+  method          String    @default("mobile_money") // mobile_money, card, bank
+  provider        String?   // orange_money, mtn_money
+  transactionId   String?   @unique
+  description     String?   @db.Text
+  failureReason   String?   @db.Text // Motivo da falha se status = failed
+  completedAt     DateTime? // Data de conclusão do pagamento
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoice         Invoice?
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([transactionId])
+}
+
+model Invoice {
+  id              String    @id @default(cuid())
+  userId          String
+  paymentId       String    @unique
+  invoiceNumber   String    @unique // BM-2024-0001
+  amount          Float
+  currency        String    @default("XOF")
+  status          String    @default("paid") // paid, pending, cancelled
+  description     String?
+  issuedAt        DateTime  @default(now())
+  dueDate         DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment         Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([invoiceNumber])
+  @@index([status])
+}
+
+// ============================================
+// REPORTS & MODERATION
+// ============================================
+
+model Report {
+  id              String    @id @default(cuid())
+  reporterId      String
+  reportedUserId  String?
+  reportedAdId    String?
+  reason          String
+  description     String?   @db.Text
+  status          String    @default("pending") // pending, reviewed, resolved, dismissed
+  resolution      String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  reporter        User      @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId])
+  @@index([status])
+}
+
+// ============================================
+// ADMIN & LOGGING
+// ============================================
+
+model AdminLog {
+  id            String    @id @default(cuid())
+  adminId       String
+  action        String    // create, update, delete, block, unblock, verify, moderate
+  targetType    String    // user, ad, plan, subscription, category, report
+  targetId      String
+  details       String?   @db.Text // JSON stringified
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  admin         User      @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([createdAt])
+  @@index([action])
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String    // ad_expired, ad_approved, payment_success, etc
+  title     String
+  message   String    @db.Text
+  data      Json?     // Dados adicionais da notificação
+  isRead    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([type])
+}
+
+// ============================================
+// USER BLOCKS
+// ============================================
+
+model UserBlock {
+  id            String    @id @default(cuid())
+  blockerId     String    // Usuário que bloqueou
+  blockedUserId String    // Usuário bloqueado
+  reason        String?   @db.Text
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  blocker       User      @relation("UserBlocks", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUser   User      @relation("BlockedBy", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedUserId])
+  @@index([blockerId])
+  @@index([blockedUserId])
+}
+
+// ============================================
+// DAILY REPORTS
+// ============================================
+
+model DailyReport {
+  id            String    @id @default(cuid())
+  date          DateTime  @unique @default(now())
+  newUsers      Int       @default(0)
+  newAds        Int       @default(0)
+  newPayments   Int       @default(0)
+  totalRevenue  Float     @default(0)
+  activeUsers   Int       @default(0)
+  activeAds     Int       @default(0)
+  data          Json?     // Dados adicionais do relatório
+  createdAt     DateTime  @default(now())
+
+  @@index([date])
+}

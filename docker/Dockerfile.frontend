@@ -1,0 +1,52 @@
+# Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copiar package.json
+COPY frontend/package*.json ./
+
+# Instalar dependências
+RUN npm ci
+
+# Copiar código fonte
+COPY frontend . .
+
+# Build
+RUN npm run build
+
+# Runtime stage
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Instalar dumb-init
+RUN apk add --no-cache dumb-init
+
+# Copiar package.json
+COPY frontend/package*.json ./
+
+# Instalar apenas dependências de produção
+RUN npm ci --only=production
+
+# Copiar build do stage anterior
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+
+# Criar usuário não-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+USER nodejs
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+
+# Usar dumb-init como entrypoint
+ENTRYPOINT ["dumb-init", "--"]
+
+# Comando padrão
+CMD ["npm", "start"]
+
+EXPOSE 3001

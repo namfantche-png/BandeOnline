@@ -1,0 +1,15 @@
+{
+  "name": "BissauMarket",
+  "short_name": "BissauMarket",
+  "description": "A maior plataforma de anúncios classificados da Guiné-Bissau",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "categories": ["shopping", "business"],
+  "lang": "pt-GW",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false
+}
