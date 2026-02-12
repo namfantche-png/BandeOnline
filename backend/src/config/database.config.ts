@@ -65,7 +65,15 @@ class DatabaseServiceImpl implements OnModuleInit, OnModuleDestroy {
 };
 
 /** Interface para tipagem do DatabaseService injetado */
-export interface DatabaseService extends PrismaClient, OnModuleInit, OnModuleDestroy {}
+/**
+ * Export a DatabaseService type that includes PrismaClient delegates.
+ * Adding an index signature prevents TS errors when using Proxy-delegated
+ * model delegates (e.g. `db.user`, `db.ad`) while preserving the
+ * PrismaClient typings where available.
+ */
+export interface DatabaseService extends PrismaClient, OnModuleInit, OnModuleDestroy {
+  [key: string]: any;
+}
 
 /** Classe para injeção no Nest */
 export const DatabaseService = DatabaseServiceImpl as unknown as new () => DatabaseService;
