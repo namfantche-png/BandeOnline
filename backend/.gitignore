@@ -5,4 +5,8 @@ node_modules
 /generated/prisma
 
 # Uploads locais (fallback quando Cloudinary não está configurado)
-uploads/
+# IMPORTANTE: Use apenas /uploads/ para ignorar a RAIZ
+# backend/src/modules/uploads/ é CÓDIGO e deve estar no Git!
+/uploads/
+uploads.db
+*.temp

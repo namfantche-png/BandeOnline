@@ -1,0 +1,196 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                ║
+║              GUIA PASSO-A-PASSO: Corrigir Problema dos Uploads               ║
+║                                                                                ║
+║  Erro: "Cannot find module './modules/uploads/uploads.module'"               ║
+║  Causa: Pasta uploads está no .gitignore quando não deveria estar            ║
+║  Solução: Corrigir .gitignore e adicionar arquivos ao Git                    ║
+║                                                                                ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+📍 PASSO 1: Abrir Terminal/PowerShell
+
+  Local: C:\Users\CW11\Searches\TheNewDeal - Nexus\BandeOnline\BandeOnline
+         (Diretório RAIZ do projeto, não backend!)
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+📍 PASSO 2: Verificar Status Atual
+
+  Comando:
+  ────────
+  git status
+
+  Esperado:
+  ────────
+  On branch main
+  ...
+  (mostra alguns arquivos se tiver modificações)
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+📍 PASSO 3: Forçar Adição dos Arquivos uploads
+
+  Comando:
+  ────────
+  git add -f backend/src/modules/uploads/
+
+  O que faz:
+  ──────────
+  Adiciona os 4 arquivos da pasta uploads ao Git, ignorando a regra .gitignore
+
+  Arquivos que serão adicionados:
+  ──────────────────────────────
+  - backend/src/modules/uploads/cloudinary.service.ts
+  - backend/src/modules/uploads/uploads.controller.ts
+  - backend/src/modules/uploads/uploads.module.ts
+  - backend/src/modules/uploads/uploads.service.ts
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+📍 PASSO 4: Adicionar .gitignore Corrigido
+
+  Comando:
+  ────────
+  git add backend/.gitignore
+
+  O que faz:
+  ──────────
+  Adiciona a versão CORRIGIDA do .gitignore com /uploads/ (não uploads/)
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+📍 PASSO 5: Verificar o Que Será Commitado
+
+  Comando:
+  ────────
+  git status
+
+  Esperado:
+  ────────
+  Changes to be committed:
+    new file:   backend/src/modules/uploads/cloudinary.service.ts
+    new file:   backend/src/modules/uploads/uploads.controller.ts
+    new file:   backend/src/modules/uploads/uploads.module.ts
+    new file:   backend/src/modules/uploads/uploads.service.ts
+    modified:   backend/.gitignore
+
+  ✓ Se vir isto, está correto!
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+📍 PASSO 6: Criar Commit
+
+  Comando:
+  ────────
+  git commit -m "chore: add uploads module to git and fix gitignore"
+
+  Esperado Output:
+  ────────────────
+  [main ...] chore: add uploads module to git and fix gitignore
+   5 files changed, X insertions(+)
+   create mode 100644 backend/src/modules/uploads/cloudinary.service.ts
+   create mode 100644 backend/src/modules/uploads/uploads.controller.ts
+   create mode 100644 backend/src/modules/uploads/uploads.module.ts
+   create mode 100644 backend/src/modules/uploads/uploads.service.ts
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+📍 PASSO 7: Fazer Push para GitHub
+
+  Comando:
+  ────────
+  git push origin main
+
+  Esperado Output:
+  ────────────────
+  Enumerating objects: X, done.
+  Counting objects: X%, done.
+  Delta compression using up to Y threads.
+  Compressing objects: 100%, done.
+  Writing objects: 100%, done.
+  ...
+  Total X (delta Y), reused Y (delta Y), pack-reused Z
+  To github.com:SEU_USER/BandeOnline.git
+     hash...hash  main -> main
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+📍 PASSO 8: Verificar no GitHub (Web)
+
+  1. Abra: https://github.com/SEU_USER/BandeOnline
+  2. Navegue até: backend/src/modules/uploads/
+  3. Veja os 4 arquivos lá
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+📍 PASSO 9: Render vai fazer o Deploy Automático
+
+  O que acontece:
+  ───────────────
+  1. Render detecta novo code no GitHub
+  2. Clona repositório COM os arquivos uploads
+  3. Executa: npm install && npx prisma generate && npm run build
+  4. Encontra os imports (../uploads/uploads.module)
+  5. Build sucesso! ✓
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+📋 RESUMO DOS COMANDOS (COPIAR E COLAR)
+
+────────────────────────────────────────────────────────────────────────────────
+
+cd "C:\Users\CW11\Searches\TheNewDeal - Nexus\BandeOnline\BandeOnline"
+
+git status
+
+git add -f backend/src/modules/uploads/
+
+git add backend/.gitignore
+
+git status
+
+git commit -m "chore: add uploads module to git and fix gitignore"
+
+git push origin main
+
+────────────────────────────────────────────────────────────────────────────────
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+⚠️  IMPORTANTE: NÃO FAÇA ISTO
+
+  ❌ git add backend/src/modules/uploads/  (sem -f vai falhar)
+  ❌ git add backend/uploads/                (pastalocal, não code)
+  ❌ git add *.ts                             (muito genérico)
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+🆘 SE ALGO DER ERRADO
+
+  Erro: "permission denied"
+  Solução: Use git add -f (força)
+
+  Erro: "fatal: not a git repository"
+  Solução: Certifique-se de estar em: BandeOnline/ (com .git)
+
+  Erro: "fatal: 'origin' does not appear to be a 'git' repository"
+  Solução: Verificar remoto com: git remote -v
+
+  Quer reverter?
+  Solução: git reset HEAD backend/src/modules/uploads/
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+✅ QUANDO TERMINAR
+
+  Você terá:
+  ✓ Arquivos do módulo uploads no Git
+  ✓ .gitignore corrigido
+  ✓ Deploy automático no Render
+  ✓ Build bem-sucedido
+  ✓ API rodando sem erros de módulo!
+
+═══════════════════════════════════════════════════════════════════════════════════
