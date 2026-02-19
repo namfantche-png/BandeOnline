@@ -1,0 +1,207 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                ║
+║                  FLUXO DE SOLUÇÃO: WINDOWS → LINUX (RENDER)                   ║
+║                                                                                ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SUA MÁQUINA (Windows)                          RENDER (Linux)
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ npm install                                 npx install (ambiente limpo)
+   ├─ npm-cache                                   └─ Sem cache anterior
+   ├─ Prisma gerado (automático/cache)            └─ ❌ Prisma NÃO gerado
+   └─ .prisma/client criado                        └─ ❌ Arquivo não existe
+   
+❌ npm run build                                FALTA: npx prisma generate
+   ├─ Procura @prisma/client
+   ├─ ✅ Encontra (foi gerado antes)           🔴 ERRO AQUI:
+   ├─ Compila com case-insensitive             "PrismaClient not exported"
+   └─ ✅ Sucesso!
+                                                ❌ npm run build
+                                                   ├─ Procura @prisma/client
+                                                   ├─ ❌ Não encontra
+                                                   └─ error TS2305
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+A SOLUÇÃO:
+═════════════════════════════════════════════════════════════════════════════════
+
+ANTES (❌ Quebrado)                           DEPOIS (✅ Funcionando)
+─────────────────────────────────────────────────────────────────────────────
+
+npm install                                   npm install
+  ↓                                             ↓
+npm run build                                 npx prisma generate ⭐
+  ↓                                             ↓
+❌ Erro                                        npm run build
+                                                ↓
+                                              ✅ Sucesso!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+COMANDO NO RENDER.COM:
+═════════════════════════════════════════════════════════════════════════════════
+
+Build Command (Settings → Build & Deploy):
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│  npm install && npx prisma generate && npm run build                       │
+│                                                                            │
+│  Passo 1: npm install                                                     │
+│           └─ Instala packages                                             │
+│                                                                            │
+│  Passo 2: npx prisma generate ⭐ CRÍTICO                                  │
+│           └─ Gera node_modules/.prisma/client/                           │
+│           └─ Disponibiliza exports de @prisma/client                     │
+│                                                                            │
+│  Passo 3: npm run build                                                   │
+│           └─ Compila TypeScript                                          │
+│           └─ Encontra PrismaClient (foi gerado no passo 2)               │
+│                                                                            │
+│  Resultado: ✅ Build bem-sucedido!                                       │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DIAGRAMA DE ARQUIVOS:
+═════════════════════════════════════════════════════════════════════════════════
+
+Antes da solução:
+    node_modules/
+    ├─ @prisma/
+    │   └─ client/
+    │       ├─ ❌ VAZIO (não foi gerado)
+    │       └─ ❌ Falta index.d.ts
+    └─ (outros packages)
+    
+    Resultado: ❌ Build falha
+
+
+Depois da solução:
+    node_modules/
+    ├─ @prisma/
+    │   └─ client/
+    │       ├─ ✅ index.d.ts (types)
+    │       ├─ ✅ index.js (implementation)
+    │       └─ ✅ schema.prisma
+    └─ (outros packages)
+    
+    Resultado: ✅ Build sucesso
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TIMELINE DO ERRO (por quê isso aconteceu):
+═════════════════════════════════════════════════════════════════════════════════
+
+Windows (Local - Seu PC):
+┌─ npm install
+│  ├─ Verifica Prisma já foi gerado? SIM (em cache ou anterior)
+│  ├─ Se não, gera automaticamente
+│  └─ .prisma/client/ criada ✅
+│
+└─ npm run build ✅
+
+                                    Render (Linux - Servidor):
+                                    ┌─ npm install (ambiente limpo!)
+                                    │  ├─ Verifica .prisma/client/ ? NÃO
+                                    │  ├─ ❌ Não gera (não é automático agora)
+                                    │  └─ .prisma/client/ NÃO criada
+                                    │
+                                    └─ npm run build ❌
+                                       error TS2305: PrismaClient not exported
+
+
+                                    SOLUÇÃO: Adicionar geração explícita
+                                    ┌─ npm install
+                                    ├─ npx prisma generate ⭐ NOVO PASSO
+                                    │  └─ .prisma/client/ criada ✅
+                                    └─ npm run build ✅
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLEMA 2: CASE SENSITIVITY
+═════════════════════════════════════════════════════════════════════════════════
+
+Arquivo real: src/modules/uploads/uploads.module.ts
+                                 ↑↑↑↑↑↑↑↑
+                                 minúsculas!
+
+Windows (case-insensitive):
+import X from '../Uploads/uploads.module.ts'  ✅ Funciona (mesmo maiúsculo)
+import X from '../uploads/uploads.module.ts'  ✅ Funciona (minúsculo)
+
+Linux (case-sensitive):
+import X from '../Uploads/uploads.module.ts'  ❌ NÃO encontra!
+import X from '../uploads/uploads.module.ts'  ✅ Encontra!
+
+SOLUÇÃO: Usar tsconfig com forceConsistentCasingInFileNames: true
+↓
+TypeScript avisa se import está com case errado
+↓
+Windows também mostra erro (mesmo sendo permissivo)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RESUMO DAS MUDANÇAS:
+═════════════════════════════════════════════════════════════════════════════════
+
+ANTES (❌ Não funciona em Render):
+┌──────────────────────────────────────┐
+│ Build Command: npm install &&        │
+│                npm run build          │
+│                                      │
+│ Result: ❌ PrismaClient not exported │
+└──────────────────────────────────────┘
+
+DEPOIS (✅ Funciona em Render):
+┌──────────────────────────────────────────────┐
+│ Build Command: npm install &&                │
+│                npx prisma generate && ← NOVO │
+│                npm run build                  │
+│                                              │
+│ Result: ✅ Build bem-sucedido!              │
+└──────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CHECKLIST RÁPIDO:
+═════════════════════════════════════════════════════════════════════════════════
+
+☐ Render.com → Settings → Build & Deploy
+  └─ Atualizar para: npm install && npx prisma generate && npm run build
+
+☐ Render.com → Settings → Environment
+  └─ Adicionar: DATABASE_URL
+  └─ Adicionar: NODE_ENV=production
+  └─ Adicionar: JWT_SECRET
+
+☐ GitHub
+  └─ git commit
+  └─ git push origin main
+
+☐ Resultado
+  └─ Abir Render logs
+  └─ Ver: "✅ Build succeeded"
+  └─ Testar: https://app.onrender.com/api/health
+
+═════════════════════════════════════════════════════════════════════════════════
+
+TEMPO TOTAL: 15-20 MINUTOS ⏱️
+
+   5 min: Ler documentação
+   5 min: Atualizar Render
+   1 min: Git push
+   5 min: Deploy automático
+  ─────
+  20 min total
+
+═════════════════════════════════════════════════════════════════════════════════
+
+Fim da visualização técnica. Veja os documentos para detalhes.
+
+👉 Comece com: RENDER_QUICK_FIX.md ou COMECE_AQUI.txt
